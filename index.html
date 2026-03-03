@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>dry-ice-course-manager vNEXT</title>
+  <meta name="theme-color" content="#f3f4f7" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- Top Bar -->
+    <header class="topbar glass">
+      <div class="topbar__left">
+        <div class="brand">
+          <div class="brand__dot"></div>
+          <div class="brand__txt">
+            <div class="brand__title">Dry Ice Course Manager</div>
+            <div class="brand__sub">vNEXT（相棒保存版）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar__right">
+        <div id="pillShime" class="pill pill--neutral" aria-label="shime size">shime_size: ?</div>
+        <div id="pillBin" class="pill pill--neutral" aria-label="bin filter">bin: ALL</div>
+      </div>
+    </header>
+
+    <!-- Week + Day Tabs -->
+    <section class="section section--tight">
+      <div class="row">
+        <div class="label">週ID（月曜基準）</div>
+        <div id="weekId" class="mono badge">----</div>
+
+        <div class="spacer"></div>
+
+        <button id="btnResetWeek" class="btn btn--ghost" type="button">週リセット</button>
+      </div>
+
+      <div class="daytabs glass">
+        <button class="daytab" data-day="mon" type="button">月</button>
+        <button class="daytab" data-day="tue" type="button">火</button>
+        <button class="daytab" data-day="wed" type="button">水</button>
+        <button class="daytab" data-day="thu" type="button">木</button>
+        <button class="daytab" data-day="fri" type="button">金</button>
+
+        <div class="spacer"></div>
+        <button id="btnSave" class="btn btn--primary" type="button">保存</button>
+      </div>
+
+      <div class="hint">
+        直近1週のみ保持（週跨ぎで全削除）。保存は端末内（localStorage）だけ。
+      </div>
+    </section>
+
+    <!-- CSV Input -->
+    <section class="section">
+      <div class="card glass">
+        <div class="card__head">
+          <div>
+            <div class="card__title">CSV入力</div>
+            <div class="card__sub">写真→相棒CSV化 → ここに貼り付け</div>
+          </div>
+          <div class="card__actions">
+            <button id="btnLoadCsv" class="btn btn--primary" type="button">CSV読込</button>
+            <button id="btnClearCsv" class="btn btn--ghost" type="button">クリア</button>
+          </div>
+        </div>
+
+        <textarea
+          id="csvInput"
+          class="textarea mono"
+          spellcheck="false"
+          placeholder="例：
+shime_size,30
+course,bin,shime,cut
+501,1,1,8
+505,2,0,10
+"></textarea>
+
+        <div class="row row--wrap">
+          <div class="chip">✔ CSV1行目（shime_size）最優先</div>
+          <div class="chip">✔ 便（1/2）完全分離</div>
+          <div class="chip">✔ 切り上げ禁止</div>
+          <div class="chip">✔ 存在しないコースは計算しない</div>
+          <div class="spacer"></div>
+          <button id="btnCopyResult" class="btn btn--ghost" type="button">結果コピー</button>
+        </div>
+
+        <div id="validationBox" class="validation"></div>
+      </div>
+    </section>
+
+    <!-- View Switch + Filters -->
+    <section class="section section--tight">
+      <div class="toolbar glass">
+        <div class="toolbar__group">
+          <div class="seg" role="tablist" aria-label="view">
+            <button class="seg__btn is-active" data-view="card" type="button">カード</button>
+            <button class="seg__btn" data-view="paper" type="button">紙ビュー</button>
+            <button class="seg__btn" data-view="data" type="button">DATA</button>
+          </div>
+        </div>
+
+        <div class="toolbar__group">
+          <div class="seg" role="tablist" aria-label="bin filter">
+            <button class="seg__btn is-active" data-bin="all" type="button">ALL</button>
+            <button class="seg__btn" data-bin="1" type="button">1便</button>
+            <button class="seg__btn" data-bin="2" type="button">2便</button>
+          </div>
+        </div>
+
+        <div class="toolbar__group">
+          <button id="btnShowDeleted" class="btn btn--ghost" type="button">削除を表示</button>
+        </div>
+      </div>
+      <div class="hint">
+        便フィルタ中は別便の操作を無効化して混在事故を防止。
+      </div>
+    </section>
+
+    <!-- Batch Actions -->
+    <section class="section section--tight">
+      <div class="batch glass">
+        <div class="batch__left">
+          <div class="label">選択</div>
+          <div id="selCount" class="badge mono">0</div>
+        </div>
+
+        <div class="batch__right">
+          <button id="btnSelectAll" class="btn btn--ghost" type="button">全選択</button>
+          <button id="btnClearSel" class="btn btn--ghost" type="button">解除</button>
+
+          <span class="divider"></span>
+
+          <button id="btnAnchor" class="btn btn--ghost" type="button">範囲：起点</button>
+          <button id="btnRange" class="btn btn--ghost" type="button">範囲選択</button>
+
+          <span class="divider"></span>
+
+          <button class="btn btn--ghost" data-move="unassigned" type="button">未振分へ</button>
+          <button class="btn btn--ghost" data-move="A" type="button">Aへ</button>
+          <button class="btn btn--ghost" data-move="B" type="button">Bへ</button>
+          <button class="btn btn--ghost" data-move="C" type="button">Cへ</button>
+          <button class="btn btn--ghost" data-move="D" type="button">Dへ</button>
+          <button class="btn btn--ghost" data-move="E" type="button">Eへ</button>
+
+          <span class="divider"></span>
+
+          <button id="btnDelete" class="btn btn--danger" type="button">削除</button>
+          <button id="btnRestore" class="btn btn--ghost" type="button">復活</button>
+        </div>
+      </div>
+      <div class="hint">
+        削除＝論理削除（復活可能）。切り上げは一切しない。
+      </div>
+    </section>
+
+    <!-- Columns -->
+    <main class="section">
+      <div id="board" class="board">
+        <section class="col" data-group="unassigned">
+          <div class="col__head">
+            <div class="col__title">未振分</div>
+            <div class="col__meta mono" id="meta_unassigned">0</div>
+          </div>
+          <div class="col__body" id="list_unassigned"></div>
+        </section>
+
+        <section class="col" data-group="A">
+          <div class="col__head">
+            <div class="col__title">A</div>
+            <div class="col__meta mono" id="meta_A">0</div>
+          </div>
+          <div class="col__body" id="list_A"></div>
+        </section>
+
+        <section class="col" data-group="B">
+          <div class="col__head">
+            <div class="col__title">B</div>
+            <div class="col__meta mono" id="meta_B">0</div>
+          </div>
+          <div class="col__body" id="list_B"></div>
+        </section>
+
+        <section class="col" data-group="C">
+          <div class="col__head">
+            <div class="col__title">C</div>
+            <div class="col__meta mono" id="meta_C">0</div>
+          </div>
+          <div class="col__body" id="list_C"></div>
+        </section>
+
+        <section class="col" data-group="D">
+          <div class="col__head">
+            <div class="col__title">D</div>
+            <div class="col__meta mono" id="meta_D">0</div>
+          </div>
+          <div class="col__body" id="list_D"></div>
+        </section>
+
+        <section class="col" data-group="E">
+          <div class="col__head">
+            <div class="col__title">E</div>
+            <div class="col__meta mono" id="meta_E">0</div>
+          </div>
+          <div class="col__body" id="list_E"></div>
+        </section>
+
+        <!-- Deleted -->
+        <section class="col col--deleted" data-group="deleted" id="col_deleted">
+          <div class="col__head">
+            <div class="col__title">削除（復活可）</div>
+            <div class="col__meta mono" id="meta_deleted">0</div>
+          </div>
+          <div class="col__body" id="list_deleted"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer Totals -->
+    <footer class="footer glass">
+      <div class="footer__left">
+        <div class="label">表示中 合計</div>
+        <div class="totals">
+          <div class="tot">
+            <div class="tot__k">ドライアイス</div>
+            <div class="tot__v">
+              <span id="t_case" class="mono">0</span> ケース +
+              <span id="t_bara" class="mono">0</span> バラ
+            </div>
+          </div>
+          <div class="tot">
+            <div class="tot__k">蓄冷材</div>
+            <div class="tot__v">
+              <span id="t_ice" class="mono">0</span> 枚 /
+              キャリア <span id="t_car" class="mono">0</span> ケース（floor）
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer__right">
+        <div class="label">安全</div>
+        <div id="safetyMsg" class="badge">切り上げ禁止 / 便分離</div>
+      </div>
+    </footer>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <!-- DATA View Modal -->
+    <div id="dataModal" class="modal" aria-hidden="true">
+      <div class="modal__backdrop" data-close="1"></div>
+      <div class="modal__panel glass">
+        <div class="modal__head">
+          <div class="modal__title">DATAビュー</div>
+          <button class="btn btn--ghost" data-close="1" type="button">閉じる</button>
+        </div>
+        <pre id="dataText" class="data mono"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
